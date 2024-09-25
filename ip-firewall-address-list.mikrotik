@@ -1,0 +1,31 @@
+:local searchPatterns "(ytimg|youtube|msn|google|googlevideo.com)";
+
+# /log info ("Start marking routes script");
+:foreach i in=[/ip dns cache all find where (name~$searchPatterns) && $type ~ "^(A|CNAME)\$" ] do={
+    # /log info ($i)
+    :local tmpAddress [/ip dns cache get $i name];
+    # /log info ($tmpAddress)
+    # /log info ([/ip firewall address-list find where address=$tmpAddress])
+
+    # delay delay-time=10ms
+    # prevent script from using all cpu time #
+
+    # /log info ( [:len [/ip firewall address-list find where address=$tmpAddress]])
+
+    :if ( !(/ip firewall address-list find where address=$tmpAddress) || [:len [/ip firewall address-list find where address=$tmpAddress]] = 0  && $tmpAddress) do={
+        # /log info ("try to add");
+        :local cacheName [/ip dns cache get $i name] ;
+        :do {
+            # :if ($tmpAddress) do={
+                # /log info ($tmpAddress)
+                /ip firewall address-list add address=$tmpAddress list=vpn_list timeout=01:00:00 comment=$cacheName;
+                # /log info ("added entry: $cacheName $tmpAddress");
+            # }
+        } on-error={
+            :put "exists"
+        }
+
+    }
+    # /log info ("Iteration finished");
+}
+/log info ("Finish marking routes script");
